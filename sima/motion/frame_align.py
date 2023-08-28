@@ -81,6 +81,10 @@ def align_frame_generator(cycle, cycle_idx, method, max_displacement, method_kwa
                                 it.repeat(method_kwargs), it.repeat(n_processes))):
         yield _align_frame(*item)
 
+def align_frame_wrapper(args):
+    # Unpack the arguments and call the function
+    return _align_frame_wrapped(*args)
+
 def _frame_alignment_base(
         dataset, max_displacement=None, method='correlation', n_processes=1,
         **method_kwargs):
@@ -130,6 +134,7 @@ def _frame_alignment_base(
         p = Pool(n_processes)
     
     for cycle_idx, cycle in zip(it.count(), dataset):
+        chunksize = min(1 + old_div(len(cycle), n_processes), 200)
         if n_processes > 1:
             map_generator = p.apply_async(
                 _align_frame,
@@ -239,6 +244,11 @@ def _align_frame_helper(frame_idx, frame, cycle_idx, method, max_displacement, m
                     np.expand_dims(plane, 0))
             namespace.min_shift = np.minimum(shift, min_shift)
             namespace.max_shift = np.maximum(shift, max_shift)
+
+def _align_frame_wrapped(inputs):
+    (frame_idx, frame, cycle_idx, method,
+        max_displacement, method_kwargs, n_processes) = inputs
+    _align_frame(frame_idx, frame, cycle_idx, method, max_displacement, method_kwargs, n_processes)
 
 def _align_frame(frame_idx, frame, cycle_idx, method, max_displacement, method_kwargs, n_processes):
     """Aligns single frames and updates reference image.
