@@ -7,7 +7,7 @@ http://www.losonczylab.org/workflow_data.zip and extract it in your
 current working directory.
 
 """
-from __future__ import print_function
+
 from builtins import input
 from builtins import range
 
@@ -58,7 +58,7 @@ correction_approach = sima.motion.HiddenMarkov2D(num_states_retained=30,
 
 if os.path.exists(dataset_path):
     while True:
-        input_ = input("Dataset path already exists. Overwrite? (y/n) ")
+        input_ = eval(input("Dataset path already exists. Overwrite? (y/n) "))
         if input_ == 'n':
             exit()
         elif input_ == 'y':
@@ -91,7 +91,7 @@ dataset.export_frames(output_filenames, fill_gaps=True)
 # At this point, one may wish to inspect the exported image data to evaluate
 # the quality of the motion correction before continuing.
 while True:
-    input_ = input("Continue? (y/n): ")
+    input_ = eval(input("Continue? (y/n): "))
     if input_ == 'n':
         exit()
     elif input_ == 'y':
@@ -127,7 +127,7 @@ dataset.segment(segmentation_approach, 'auto_ROIs')
 # At this point, one may wish to edit the automatically segmented ROIs using
 # the ROI Buddy GUI before performing signal extraction.
 while True:
-    input_ = input("Continue? (y/n): ")
+    input_ = eval(input("Continue? (y/n): "))
     if input_ == 'n':
         exit()
     elif input_ == 'y':

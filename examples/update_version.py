@@ -55,7 +55,7 @@ if __name__ == '__main__':
                     # Convert failed, possibly bad SIMA directory or path
                     pass
                 else:
-                    print "Dataset successfully update: " + directory
+                    print("Dataset successfully update: " + directory)
             except:
                 # Possibly corrupt directory or an unsupported version
                 pass

@@ -9,7 +9,6 @@ dist
 *.h5
 *.pkl
 *.npz
-*.c
 sima.egg-info
 .ipynb_checkpoints
 build.log

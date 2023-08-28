@@ -252,11 +252,12 @@ def create_sequence(full_path_to_file, individualframename):
     return filename, dual_channel
 
 
-def motion_correction((full_path_to_file, individualframename)):
+def motion_correction(xxx_todo_changeme):
     # Create SIMA Sequence object from file(s)
+    (full_path_to_file, individualframename) = xxx_todo_changeme
     filename, dual_channel = create_sequence(full_path_to_file,
                                              individualframename)
-    print "Starting motion correction for %s" % filename
+    print("Starting motion correction for %s" % filename)
     init_data = sima.ImagingDataset.load(filename + '.sima')
 
     # Define motion correction method and run.
@@ -270,7 +271,7 @@ def motion_correction((full_path_to_file, individualframename)):
     else:
         dataset = mc_approach.correct(init_data, filename + '_mc.sima')
     logging.info("Done motion correction for %s. Saving results" % filename)
-    print "Done motion correction for %s. Saving results" % filename
+    print("Done motion correction for %s. Saving results" % filename)
     sys.stdout.flush()
 
     if dual_channel:
@@ -291,20 +292,21 @@ def motion_correction((full_path_to_file, individualframename)):
                                   fmt='HDF5')
 
     logging.info("Done exporting motion corrected files for %s" % filename)
-    print "Done exporting motion corrected files for %s" % filename
+    print("Done exporting motion corrected files for %s" % filename)
     sys.stdout.flush()
 
 
-def extract_rois((full_path_to_file, individualframename)):
+def extract_rois(xxx_todo_changeme1):
     # Create SIMA Sequence & ImagingDataset objects from image file(s) or
     # motion correction if action == 'extract', assume that motion
     # correction was done on EC2 previously
+    (full_path_to_file, individualframename) = xxx_todo_changeme1
     if action == 'both':
         try:
             motion_correction((full_path_to_file, individualframename))
         except Exception as e:
             print('Motion correction failed')
-            print e
+            print(e)
             logging.Exception('Motion correction failed')
 
     filename = os.path.splitext(os.path.basename(full_path_to_file))[0]
@@ -326,17 +328,17 @@ def extract_rois((full_path_to_file, individualframename)):
 
         logging.info("Done segmenting images for %s" % filename)
 
-        print("Done segmenting images for %s" % filename)
+        print(("Done segmenting images for %s" % filename))
     else:
         logging.info("Importing ROIs from ImageJ for %s..." % filename)
-        print("Importing ROIs from ImageJ for %s..." % filename)
+        print(("Importing ROIs from ImageJ for %s..." % filename))
 
         # Load ROIs from ImageJ
         rois = ROIList.load(filename + '_mc_' + roi_filename, fmt='ImageJ')
         dataset.add_ROIs(rois, 'from_ImageJ')
 
         logging.info("Done importing ROIs for %s" % filename)
-        print("Done importing ROIs for %s" % filename)
+        print(("Done importing ROIs for %s" % filename))
 
     # Extract signals from ROIs into numpy file
     signals = dataset.extract(rois)
@@ -356,7 +358,7 @@ def download_all_files_sequentially(s3_full_filenames):
 
     for s3_full_filename in s3_full_filenames:
         filename = os.path.basename(s3_full_filename)
-        print('Downloading %s' % (filename))
+        print(('Downloading %s' % (filename)))
         temp = os.path.splitext(filename)
         if temp[0][-4:] == '_CH1':
             dual_channel = True
@@ -515,7 +517,7 @@ def upload_mc_sima_objects(s3_full_filename):
         for afile in files:
             relpath = os.path.relpath(os.path.join(path, afile))
             logging.info('Uploading ' + relpath)
-            print('Uploading ' + relpath)
+            print(('Uploading ' + relpath))
             k.key = os.path.join(s3_path, relpath)
             k.set_contents_from_filename(relpath)
     return s3_path, filename
@@ -543,7 +545,7 @@ def upload_file(file_path_on_ec2):
 
         logging.info("uploading part " + str(part_num) + " of " +
                      str(num_chunks))
-        print("uploading part " + str(part_num) + " of " + str(num_chunks))
+        print(("uploading part " + str(part_num) + " of " + str(num_chunks)))
 
         with open(file_path_on_ec2, 'r') as fp:
             fp.seek(offset)
@@ -646,7 +648,7 @@ def ping_for_a_while(num_minutes, start_time):
     temp_start_time = start_time
     while (time.time() - start_time) < num_minutes*60:
         if (time.time() - temp_start_time) > 30:
-            print('%s seconds later!' % (time.time() - start_time))
+            print(('%s seconds later!' % (time.time() - start_time)))
             sys.stdout.flush()
             temp_start_time = time.time()
 
@@ -663,13 +665,13 @@ def main():
     if not s3_full_filenames:
         raise Exception('No file(s) to analyze')
 
-    print('Files to analyze: %s' % ('\n'.join(s3_full_filenames)))
+    print(('Files to analyze: %s' % ('\n'.join(s3_full_filenames))))
 
-    print('Number of cores available: %d, number of files being analyzed: %d'
-          % (cpu_count(), len(s3_full_filenames)))
+    print(('Number of cores available: %d, number of files being analyzed: %d'
+          % (cpu_count(), len(s3_full_filenames))))
 
-    print('You are using %d %% of your available processing power'
-          % (100*len(s3_full_filenames)/cpu_count()))
+    print(('You are using %d %% of your available processing power'
+          % (100*len(s3_full_filenames)/cpu_count())))
 
     sys.stdout.flush()
 
@@ -686,29 +688,29 @@ def main():
     # This variable is used for the SIMA function that loads images.
 
     # Run operation in parallel
-    print "Running action: " + action
+    print("Running action: " + action)
     logging.info("Running action: %s", action)
 
     num_processes = np.minimum(len(s3_full_filenames), cpu_count())
-    print "Number of processes initiated = %d" % (num_processes)
+    print("Number of processes initiated = %d" % (num_processes))
     p = Pool(num_processes)
     if action == 'motioncorrect':
-        p.map(motion_correction, zip(s3_full_filenames,
-              repeat(individualframename)))
+        p.map(motion_correction, list(zip(s3_full_filenames,
+              repeat(individualframename))))
     elif action == 'extract' or action == 'both':
         # extract_rois performs motioncorrection prior to extraction if
         # action == both
-        p.map(extract_rois, zip(s3_full_filenames,
-              repeat(individualframename)))
+        p.map(extract_rois, list(zip(s3_full_filenames,
+              repeat(individualframename))))
     logging.info('Done running action: %s!' % (action))
     p.close()
     p.join()
-    print('Done running action: %s! Now uploading results to S3' % (action))
+    print(('Done running action: %s! Now uploading results to S3' % (action)))
     sys.stdout.flush()
 
     upload_all_files_sequentially(s3_full_filenames)
 
-    print("----Time taken: %s seconds----" % (time.time()-start_time))
+    print(("----Time taken: %s seconds----" % (time.time()-start_time)))
 
 if __name__ == '__main__':
 
@@ -744,7 +746,7 @@ if __name__ == '__main__':
                 "The following error occured during the analysis script:")
         there_was_any_error = True
         print("The following error occured during the analysis script:")
-        print e
+        print(e)
 
     # Upload logs
     k = Key(bucket)

@@ -239,7 +239,8 @@ class ROI(object):
     @property
     def coords(self):
         coords = []
-        for polygon in self.polygons:
+        multi_polygon_object = self.polygons
+        for polygon in list(multi_polygon_object.geoms):
             coords.append(np.array(polygon.exterior.coords))
         return coords
 
@@ -388,7 +389,7 @@ class ROIList(list):
             # this naming convetion for ROI masks is used in Mosiac 1.0.0b
             files = [glob.glob(os.path.join(path, dirname, '*IC filter*.mat'))
                      for dirname in dirnames]
-            files = filter(lambda f: len(f) > 0, files)[0]
+            files = [f for f in files if len(f) > 0][0]
 
             rois = []
             for filename in files:
@@ -554,7 +555,9 @@ def poly2mask(polygons, im_size):
     polygons = _reformat_polygons(polygons)
 
     mask = np.zeros(im_size, dtype=bool)
-    for poly in polygons:
+
+    multi_polygon_object = polygons
+    for poly in list(multi_polygon_object.geoms):
         # assuming all points in the polygon share a z-coordinate
         z = int(np.array(poly.exterior.coords)[0][2])
         if z > im_size[0]:
@@ -651,39 +654,45 @@ def _reformat_polygons(polygons):
     MultiPolygon
 
     """
+    multi_polygon_object = polygons
 
-    if len(polygons) == 0:
+    if (isinstance(multi_polygon_object, MultiPolygon)):
+        multi_polygon_object = list(multi_polygon_object.geoms)
+    
+    if (not isinstance(multi_polygon_object, MultiPolygon)) and len(list(iter(multi_polygon_object))) == 0:
         # Just return an empty MultiPolygon
-        return MultiPolygon([])
-    elif isinstance(polygons, Polygon):
-        polygons = [polygons]
-    elif isinstance(polygons[0], Polygon):
+        return MultiPolygon([[]])
+    elif isinstance(multi_polygon_object, Polygon):
+        multi_polygon_object = [multi_polygon_object]
+    elif isinstance(multi_polygon_object[0], Polygon):
         # polygons is already a list of polygons
         pass
     else:
         # We got some sort of sequence of sequences, ensure it has the
         # correct depth and convert to Polygon objects
         try:
-            Polygon(polygons[0])
+            Polygon(multi_polygon_object[0])
         except (TypeError, AssertionError):
-            polygons = [polygons]
+            multi_polygon_object = [multi_polygon_object]
         new_polygons = []
-        for poly in polygons:
+        for poly in list(iter(multi_polygon_object)):
             # Polygon.simplify with tolerance=0 will return the exact same
             # polygon with co-linear points removed
             new_polygons.append(Polygon(poly).simplify(tolerance=0))
-        polygons = new_polygons
+        multi_polygon_object = new_polygons
 
     # Polygon.exterior.coords is not settable, need to initialize new objects
     z_polygons = []
-    for poly in polygons:
-        if poly.has_z:
-            z_polygons.append(poly)
+
+    for poly in list(multi_polygon_object):
+        poly_gon = Polygon(poly)
+        if poly_gon.has_z:
+            z_polygons.append(poly_gon)
         else:
             warn('Polygon initialized without z-coordinate. ' +
                  'Assigning to zeroth plane (z = 0)')
             z_polygons.append(
-                Polygon([point + (0,) for point in poly.exterior.coords]))
+                Polygon([point + (0,) for point in poly_gon.exterior.coords]))
     return MultiPolygon(z_polygons)
 
 

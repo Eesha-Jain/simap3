@@ -1,4 +1,4 @@
-from __future__ import division
+
 from builtins import object
 # Unit tests for sima/spikes.py
 # Tests follow conventions for NumPy/SciPy available at

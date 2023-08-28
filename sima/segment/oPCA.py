@@ -1,8 +1,8 @@
 """
 Offset principal component analysis functions.
 """
-from __future__ import print_function
-from __future__ import division
+
+
 from builtins import range
 from past.utils import old_div
 import numpy as np
@@ -246,7 +246,7 @@ class DatasetIterable(object):
             for frame in cycle:
                 yield np.nan_to_num(
                     frame[..., self.channel].reshape(-1) - self.means)
-        raise StopIteration
+        #raise StopIteration
 
 
 def dataset_opca(dataset, ch=0, num_pcs=75, path=None, verbose=False):

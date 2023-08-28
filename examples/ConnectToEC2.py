@@ -125,19 +125,19 @@ if os.name == 'nt':
 
 
 def print_status(msg):
-    print("    [" + msg + "]")
+    print(("    [" + msg + "]"))
 
 
 def print_success(msg="success"):
-    print("    [" + colored(msg, 'green') + "]")
+    print(("    [" + colored(msg, 'green') + "]"))
 
 
 def print_error(msg="failed"):
-    print("    [" + colored(msg, 'red') + "]")
+    print(("    [" + colored(msg, 'red') + "]"))
 
 
 def print_remote_message(msg):
-    print(colored(msg, 'cyan'))
+    print((colored(msg, 'cyan')))
     with open("analysislog.txt", "a") as myfile:
         myfile.write(msg)
 
@@ -288,9 +288,9 @@ def ssh(ssh_client, command, block=True, get_pty=False, display=False):
             exit_code = ssh_chan.recv_exit_status()
 
             if not exit_code == 0:
-                print "Exit code: " + str(exit_code)
+                print("Exit code: " + str(exit_code))
                 while ssh_chan.recv_stderr_ready():
-                    print ssh_chan.recv_stderr(1024)
+                    print(ssh_chan.recv_stderr(1024))
                 raise Exception('Error in SSH command.')
             elif analysis_failed_flag:
                 raise AnalysisError(
@@ -317,7 +317,7 @@ def is_active(instance):
 
 def get_existing_instance(conn, opts, die_on_error=True, outputflag=True):
     if outputflag:
-        print "Searching for existing instance " + opts.instance_name + "..."
+        print("Searching for existing instance " + opts.instance_name + "...")
 
     reservations = conn.get_all_reservations()
     master_nodes = []
@@ -329,27 +329,27 @@ def get_existing_instance(conn, opts, die_on_error=True, outputflag=True):
                 master_nodes.append(inst)
     if any(master_nodes):
         if outputflag:
-            print "Found %d instance(s)" % (len(master_nodes))
+            print("Found %d instance(s)" % (len(master_nodes)))
     if master_nodes != [] or not die_on_error:
         return master_nodes
     else:
-        print >> sys.stderr, "ERROR: Could not find any existing instance"
+        print("ERROR: Could not find any existing instance", file=sys.stderr)
         sys.exit(1)
 
 
 def launch_instance(conn, opts):
     if opts.identity_file is None:
-        print >> sys.stderr, "ERROR: Must provide an identity file \
-                             (-i) for ssh connections."
+        print("ERROR: Must provide an identity file \
+                             (-i) for ssh connections.", file=sys.stderr)
         sys.exit(1)
     if opts.key_pair is None:
-        print >> sys.stderr, "ERROR: Must provide a key pair name (-k) \
-                              to use on instances."
+        print("ERROR: Must provide a key pair name (-k) \
+                              to use on instances.", file=sys.stderr)
         sys.exit(1)
 
     user_data_content = None
 
-    print "Setting up security groups..."
+    print("Setting up security groups...")
     master_group = get_or_make_group(conn, opts.instance_name, opts.vpc_id)
     authorized_address = opts.authorized_address
     if not master_group.rules:  # Group was created just now
@@ -367,16 +367,16 @@ def launch_instance(conn, opts):
     # Check if the instance is already running in the group
     existing_masters = get_existing_instance(conn, opts, die_on_error=False)
     if existing_masters:
-        print >> sys.stderr, ("ERROR: There are already instances running \
-                               in group %s" % master_group.name)
+        print(("ERROR: There are already instances running \
+                               in group %s" % master_group.name), file=sys.stderr)
         sys.exit(1)
 
-    print "Launching instances..."
+    print("Launching instances...")
 
     try:
         image = conn.get_all_images(image_ids=[opts.ami])[0]
     except:
-        print >> sys.stderr, "Could not find AMI " + opts.ami
+        print("Could not find AMI " + opts.ami, file=sys.stderr)
         sys.exit(1)
 
     # Launch instance
@@ -393,9 +393,9 @@ def launch_instance(conn, opts):
                            user_data=user_data_content)
 
     master_nodes = master_res.instances
-    print "Launched instance in %s, regid = %s" % (opts.zone, master_res.id)
+    print("Launched instance in %s, regid = %s" % (opts.zone, master_res.id))
 
-    print "Waiting for AWS to propagate instance metadata..."
+    print("Waiting for AWS to propagate instance metadata...")
     time.sleep(5)
     # Give the instance a descriptive name
     for master in master_nodes:
@@ -415,7 +415,7 @@ def get_or_make_group(conn, name, vpc_id):
     if len(group) > 0:
         return group[0]
     else:
-        print "Creating security group " + name
+        print("Creating security group " + name)
         return conn.create_security_group(name, "EC2 instance group", vpc_id)
 
 
@@ -458,10 +458,10 @@ def wait_for_instance_state(conn, opts, theinstance, instance_state):
 
     sys.stdout.write("\n")
 
-    print "Instance is now in '{s}' state. Waited {t} seconds.".format(
+    print("Instance is now in '{s}' state. Waited {t} seconds.".format(
         s=instance_state,
         t=(datetime.now() - start_time).seconds
-    )
+    ))
 
 
 def is_ssh_available(host, opts, print_ssh_output=True):
@@ -476,9 +476,9 @@ def is_ssh_available(host, opts, print_ssh_output=True):
             socket.error) as ssh_exception:
         ssh_success = False
         if print_ssh_output:
-            print "Warning: SSH connection error. (This could be temporary.)"
-            print "Host: " + host
-            print "Error: " + ssh_exception
+            print("Warning: SSH connection error. (This could be temporary.)")
+            print("Host: " + host)
+            print("Error: " + ssh_exception)
     else:
         ssh_success = True
 
@@ -524,8 +524,8 @@ def setup_ipythonnotebook(ssh_client, master):
 
     print("    Login to the instance and run ./setup-notebook-ec2.sh to \
                finish iPython Notebook setup")
-    print "    Then access it at " + colored("https://%s:8888" % master,
-                                             'blue')
+    print("    Then access it at " + colored("https://%s:8888" % master,
+                                             'blue'))
 
 
 def launch_ec2(conn, opts):
@@ -533,10 +533,10 @@ def launch_ec2(conn, opts):
 
     if opts.resume:
         master_nodes = get_existing_instance(conn, opts)
-        print "Instance at " + master_nodes[0].public_dns_name
+        print("Instance at " + master_nodes[0].public_dns_name)
     else:
         master_nodes = launch_instance(conn, opts)
-        print "Instance at " + master_nodes[0].public_dns_name
+        print("Instance at " + master_nodes[0].public_dns_name)
 
         wait_for_instance_state(theinstance=(master_nodes[0]),
                                 instance_state='ssh-ready',
@@ -579,7 +579,7 @@ def launch_ec2(conn, opts):
                            key_filename=opts.identity_file)
         setup_analysis(ssh_client)
 
-    print "Instance successfully launched!"
+    print("Instance successfully launched!")
     return ssh_client, master
 
 
@@ -602,7 +602,7 @@ def get_back_to_analysis(ssh_client, conn, opts):
         ssh(ssh_client, "dtach -a /tmp/runanalysis -r winch",
             get_pty=True, display=True)
     except AnalysisError as e:
-        print >> sys.stderr, (e)
+        print((e), file=sys.stderr)
         if not opts.terminate_on_error:
             sys.exit(1)
     except TimeoutError:
@@ -814,7 +814,7 @@ def main():
     opts.ebs_vol_size = 0
 
     # Check file permissions for the key file. This is not an issue on Windows
-    if oct(os.stat(opts.identity_file).st_mode & 0777) != oct(0600):
+    if oct(os.stat(opts.identity_file).st_mode & 0o777) != oct(0o600):
         raise Exception('Set correct permissions for the key file. ' +
                         'It should be 0600!')
 
@@ -822,7 +822,7 @@ def main():
     try:
         conn = ec2.connect_to_region(opts.region)
     except Exception as e:
-        print >> sys.stderr, (e)
+        print((e), file=sys.stderr)
         sys.exit(1)
 
     if opts.action == "launch":
@@ -830,8 +830,8 @@ def main():
         print("Login to the instance and run python runanalysis.py \
                to perform analysis")
         print("")
-        print("Public IP for instance is " + colored("http://%s" % master,
-                                                     'blue'))
+        print(("Public IP for instance is " + colored("http://%s" % master,
+                                                     'blue')))
         print("")
     elif opts.action == "analyzeandterminate" or opts.action == "analyze":
         ssh_client, master = launch_ec2(conn, opts)
@@ -851,7 +851,7 @@ def main():
                 /mnt/analysis/DATA/runanalysis.sh", get_pty=True,
                 display=True)
         except AnalysisError as ae:
-            print >> sys.stderr, (ae)
+            print((ae), file=sys.stderr)
             if not opts.terminate_on_error:
                 sys.exit(1)
         except KeyboardInterrupt:
@@ -885,16 +885,16 @@ def main():
         # Login to the instance
         if opts.action == "login":
             if os.name == 'nt':
-                print "Logging into instance " + master + " as " +\
-                       opts.user + " ..."
+                print("Logging into instance " + master + " as " +\
+                       opts.user + " ...")
                 subprocess.check_call(['plink', '-i',
                                        opts.identity_file.replace(".pem",
                                                                   ".ppk"),
                                        '-ssh', "%s@%s" % (opts.user, master)])
                 # use key with .ppk extension for plink connection
             else:
-                print "Logging into instance " + master + " as " \
-                       + opts.user + " ..."
+                print("Logging into instance " + master + " as " \
+                       + opts.user + " ...")
                 subprocess.check_call(['ssh', '-i', opts.identity_file,
                                        '-o', 'StrictHostKeyChecking=no',
                                        '-o', 'UserKnownHostsFile=/dev/null',
@@ -905,7 +905,7 @@ def main():
 
         # Stop instance
         elif opts.action == "stop":
-            response = raw_input(
+            response = input(
                 "Are you sure you want to stop the instance " +
                 opts.instance_name + "?\n"
                 "DATA ON EPHEMERAL DISKS WILL BE LOST, BUT THE INSTANCE \
@@ -915,14 +915,14 @@ def main():
             if response == "y":
                 (master_nodes) = get_existing_instance(conn, opts,
                                                        die_on_error=False)
-                print "Stopping instance..."
+                print("Stopping instance...")
                 for inst in master_nodes:
                     if inst.state not in ["shutting-down", "terminated"]:
                         inst.stop()
 
         # Restart a stopped instance
         elif opts.action == "start":
-            print "Starting instance..."
+            print("Starting instance...")
             for inst in master_nodes:
                 if inst.state not in ["shutting-down", "terminated"]:
                     inst.start()
@@ -940,7 +940,7 @@ def main():
 
         # Terminate the instance
         elif opts.action == "terminate":
-            response = raw_input("Are you sure you want to terminate the \
+            response = input("Are you sure you want to terminate the \
                                   instance " + opts.instance_name + "?\n"
                                  "ALL DATA WILL BE LOST!!\n"
                                  "Terminate instance " + opts.instance_name +
@@ -948,7 +948,7 @@ def main():
             if response == "y":
                 (master_nodes) = get_existing_instance(conn, opts,
                                                        die_on_error=False)
-                print "Terminating instance..."
+                print("Terminating instance...")
                 for inst in master_nodes:
                     inst.terminate()
 

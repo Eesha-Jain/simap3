@@ -70,15 +70,15 @@ def extract_dataset(dataset, signal_channel='Ch2', demix_channel=None,
     except ValueError:
         demix_channel = None
     for roi_label in labels_to_extract(dataset, signal_channel, overwrite):
-        print("Extracting label '{}' from {}".format(roi_label,
-                                                     dataset.savedir))
+        print(("Extracting label '{}' from {}".format(roi_label,
+                                                     dataset.savedir)))
         dataset.extract(rois=dataset.ROIs[roi_label],
                         label=roi_label,
                         signal_channel=signal_channel,
                         demix_channel=demix_channel,
                         remove_overlap=not include_overlap)
 
-        print('Extraction complete: {}'.format(dataset.savedir))
+        print(('Extraction complete: {}'.format(dataset.savedir)))
 
 if __name__ == '__main__':
     """Find all SIMA data within the directory and extract signals."""

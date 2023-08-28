@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
 from builtins import next
 from builtins import zip
 from builtins import map
@@ -8,7 +6,11 @@ from past.utils import old_div
 from builtins import object
 import itertools as it
 import multiprocessing
+from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 import warnings
+from itertools import tee
+import timeit
 
 import numpy as np
 try:
@@ -16,6 +18,7 @@ try:
 except ImportError:
     from numpy import nanmean
 import scipy.ndimage.filters
+from sima.imaging import ImagingDataset
 
 from . import motion
 from sima.misc.align import align_cross_correlation
@@ -67,10 +70,16 @@ class PlaneTranslation2D(motion.MotionEstimationStrategy):
 
         """
         params = self._params
+        dataset_dup = dataset #duplicates object so that dataset type not converted
         return _frame_alignment_base(
-            dataset, params['max_displacement'], params['method'],
+            dataset_dup, params['max_displacement'], params['method'],
             params['n_processes'], **params['method_kwargs'])[0]
 
+def align_frame_generator(cycle, cycle_idx, method, max_displacement, method_kwargs, n_processes):
+    for i, item in enumerate(zip(it.count(), cycle, it.repeat(cycle_idx),
+                                it.repeat(method), it.repeat(max_displacement),
+                                it.repeat(method_kwargs), it.repeat(n_processes))):
+        yield _align_frame(*item)
 
 def _frame_alignment_base(
         dataset, max_displacement=None, method='correlation', n_processes=1,
@@ -95,7 +104,6 @@ def _frame_alignment_base(
         Defaults to 1.
 
     """
-
     if n_processes < 1:
         raise ValueError('n_processes must be at least 1')
 
@@ -105,7 +113,9 @@ def _frame_alignment_base(
         namespace = multiprocessing.Manager().Namespace()
     else:
         namespace = Struct()
+    
     namespace.offset = np.zeros(3, dtype=int)
+    
     namespace.pixel_counts = np.zeros(dataset.frame_shape)  # TODO: int?
     namespace.pixel_sums = np.zeros(dataset.frame_shape).astype('float64')
     # NOTE: float64 gives nan when divided by 0
@@ -117,34 +127,27 @@ def _frame_alignment_base(
 
     lock = multiprocessing.Lock()
     if n_processes > 1:
-        pool = multiprocessing.Pool(processes=n_processes, maxtasksperchild=1)
-
+        p = Pool(n_processes)
+    
     for cycle_idx, cycle in zip(it.count(), dataset):
-        chunksize = min(1 + old_div(len(cycle), n_processes), 200)
         if n_processes > 1:
-            map_generator = pool.imap_unordered(
+            map_generator = p.apply_async(
                 _align_frame,
-                zip(it.count(), cycle, it.repeat(cycle_idx),
+                list(zip(it.count(), cycle, it.repeat(cycle_idx),
                     it.repeat(method), it.repeat(max_displacement),
-                    it.repeat(method_kwargs)),
-                chunksize=chunksize)
+                    it.repeat(method_kwargs), it.repeat(n_processes))))
         else:
-            map_generator = map(
-                _align_frame,
-                zip(it.count(), cycle, it.repeat(cycle_idx),
-                    it.repeat(method), it.repeat(max_displacement),
-                    it.repeat(method_kwargs)))
-
-        # Loop over generator and calculate frame alignments
-        while True:
-            try:
-                next(map_generator)
-            except StopIteration:
-                break
-
+            map_generator = align_frame_generator(cycle, cycle_idx, method, max_displacement, method_kwargs, n_processes)
+            generator_length = sum(1 for _ in map_generator)
+            for i in range(generator_length):
+                try:
+                    next(map_generator)
+                except StopIteration:
+                    break
+    
     if n_processes > 1:
-        pool.close()
-        pool.join()
+        p.close()
+        p.join()
 
     def _align_planes(shifts):
         """Align planes to minimize shifts between them."""
@@ -165,8 +168,79 @@ def _frame_alignment_base(
     _align_planes(shifts)
     return shifts, correlations
 
+def _align_frame_helper(frame_idx, frame, cycle_idx, method, max_displacement, method_kwargs, n_processes, p, plane):
+    # Pulls in the shared namespace and lock across all processes
+    global namespace
+    global lock
 
-def _align_frame(inputs):
+    #function for loop should run
+    with lock:
+            any_check = np.any(namespace.pixel_counts[p])
+            if not any_check:
+                corrs = namespace.correlations
+                corrs[cycle_idx][frame_idx][p] = 1
+                namespace.correlations = corrs
+                s = namespace.shifts
+                s[cycle_idx][frame_idx][p][:] = 0
+                namespace.shifts = s
+                namespace.pixel_sums, namespace.pixel_counts, \
+                    namespace.offset = _update_reference(
+                        namespace.pixel_sums, namespace.pixel_counts,
+                        namespace.offset, [p, 0, 0], np.expand_dims(plane, 0))
+    if any_check:
+        # recompute reference using all aligned images
+        with lock:
+            p_sums = namespace.pixel_sums[p]
+            p_counts = namespace.pixel_counts[p]
+            offset = namespace.offset
+            min_shift = namespace.min_shift
+            max_shift = namespace.max_shift
+        with warnings.catch_warnings():  # ignore divide by 0
+            warnings.simplefilter("ignore")
+            reference = old_div(p_sums, p_counts)
+        if method == 'correlation':
+            if max_displacement is not None and np.all(
+                    np.array(max_displacement) >= 0):
+                displacement_bounds = offset + np.array(
+                    [np.minimum(max_shift - max_displacement, min_shift),
+                        np.maximum(min_shift + max_displacement, max_shift) +
+                        1], dtype=int)
+            else:
+                displacement_bounds = None
+            shift = pyramid_align(np.expand_dims(reference, 0),
+                                    np.expand_dims(plane, 0),
+                                    bounds=displacement_bounds,
+                                    **method_kwargs)
+            if displacement_bounds is not None and shift is not None:
+                assert np.all(shift >= displacement_bounds[0])
+                assert np.all(shift <= displacement_bounds[1])
+                assert np.all(abs(shift - offset) <= max_displacement)
+        elif method == 'ECC':
+            raise NotImplementedError
+            # cv2.findTransformECC(reference, plane)
+        else:
+            raise ValueError('Unrecognized alignment method')
+        with lock:
+            s = namespace.shifts
+            if shift is None:  # if no shift could be calculated
+                try:
+                    shift = s[cycle_idx][frame_idx - 1][p] + offset
+                except IndexError:
+                    shift = s[cycle_idx][frame_idx][p] + offset
+            s[cycle_idx][frame_idx][p][:] = shift - offset
+            namespace.shifts = s
+
+        with lock:
+            shift = namespace.shifts[cycle_idx][frame_idx][p]
+            namespace.pixel_sums, namespace.pixel_counts, \
+                namespace.offset = _update_reference(
+                    namespace.pixel_sums, namespace.pixel_counts,
+                    namespace.offset, [p] + list(shift)[1:],
+                    np.expand_dims(plane, 0))
+            namespace.min_shift = np.minimum(shift, min_shift)
+            namespace.max_shift = np.maximum(shift, max_shift)
+
+def _align_frame(frame_idx, frame, cycle_idx, method, max_displacement, method_kwargs, n_processes):
     """Aligns single frames and updates reference image.
     Called by _frame_alignment_correlation to parallelize the alignment
 
@@ -188,86 +262,31 @@ def _align_frame(inputs):
 
     """
 
-    (frame_idx, frame, cycle_idx, method,
-        max_displacement, method_kwargs) = inputs
     if max_displacement is not None:
         max_displacement = [0] + list(max_displacement)
 
-    # Pulls in the shared namespace and lock across all processes
-    global namespace
-    global lock
+    params_list = []
+    processes = []
 
     for p, plane in zip(it.count(), frame):
+        chunksize = min(1 + old_div(len(plane), n_processes), 200)
         # if frame_idx in invalid_frames:
         #     correlations[i] = np.nan
         #     shifts[:, i] = np.nan
-        with lock:
-            any_check = np.any(namespace.pixel_counts[p])
-            if not any_check:
-                corrs = namespace.correlations
-                corrs[cycle_idx][frame_idx][p] = 1
-                namespace.correlations = corrs
-                s = namespace.shifts
-                s[cycle_idx][frame_idx][p][:] = 0
-                namespace.shifts = s
-                namespace.pixel_sums, namespace.pixel_counts, \
-                    namespace.offset = _update_reference(
-                        namespace.pixel_sums, namespace.pixel_counts,
-                        namespace.offset, [p, 0, 0], np.expand_dims(plane, 0))
-        if any_check:
-            # recompute reference using all aligned images
-            with lock:
-                p_sums = namespace.pixel_sums[p]
-                p_counts = namespace.pixel_counts[p]
-                offset = namespace.offset
-                min_shift = namespace.min_shift
-                max_shift = namespace.max_shift
-            with warnings.catch_warnings():  # ignore divide by 0
-                warnings.simplefilter("ignore")
-                reference = old_div(p_sums, p_counts)
-            if method == 'correlation':
-                if max_displacement is not None and np.all(
-                        np.array(max_displacement) >= 0):
-                    displacement_bounds = offset + np.array(
-                        [np.minimum(max_shift - max_displacement, min_shift),
-                         np.maximum(min_shift + max_displacement, max_shift) +
-                         1], dtype=int)
-                else:
-                    displacement_bounds = None
-                shift = pyramid_align(np.expand_dims(reference, 0),
-                                      np.expand_dims(plane, 0),
-                                      bounds=displacement_bounds,
-                                      **method_kwargs)
-                if displacement_bounds is not None and shift is not None:
-                    assert np.all(shift >= displacement_bounds[0])
-                    assert np.all(shift <= displacement_bounds[1])
-                    assert np.all(abs(shift - offset) <= max_displacement)
-            elif method == 'ECC':
-                raise NotImplementedError
-                # cv2.findTransformECC(reference, plane)
-            else:
-                raise ValueError('Unrecognized alignment method')
-            with lock:
-                s = namespace.shifts
-                if shift is None:  # if no shift could be calculated
-                    try:
-                        shift = s[cycle_idx][frame_idx - 1][p] + offset
-                    except IndexError:
-                        shift = s[cycle_idx][frame_idx][p] + offset
-                s[cycle_idx][frame_idx][p][:] = shift - offset
-                namespace.shifts = s
+        if n_processes > 1:
+            params_list.append((frame_idx, frame, cycle_idx, method, max_displacement, method_kwargs, n_processes, p, plane))
+        else:
+            _align_frame_helper(frame_idx, frame, cycle_idx, method, max_displacement, method_kwargs, n_processes, p, plane)
+    
+    if n_processes > 1:
+        for params in params_list:
+            p = multiprocessing.Process(target=_align_frame_helper, args=params)
+            processes.append(p)
+            p.start()
 
-            with lock:
-                shift = namespace.shifts[cycle_idx][frame_idx][p]
-                namespace.pixel_sums, namespace.pixel_counts, \
-                    namespace.offset = _update_reference(
-                        namespace.pixel_sums, namespace.pixel_counts,
-                        namespace.offset, [p] + list(shift)[1:],
-                        np.expand_dims(plane, 0))
-                namespace.min_shift = np.minimum(shift, min_shift)
-                namespace.max_shift = np.maximum(shift, max_shift)
-
-
+        for p in processes:
+            p.join()
+        
 def _update_reference(sums, counts, offset, displacement, image):
     displacement = np.array(displacement)
     sums = _resize_array(sums, displacement + offset, image.shape)
@@ -347,13 +366,14 @@ class VolumeTranslation(motion.MotionEstimationStrategy):
 
     def __init__(self, max_displacement=None, criterion=None):
         if not (criterion is None or
-                isinstance(criterion, (int, int, float))):
+                isinstance(criterion, (int, float))):
             raise ValueError('Criterion must be a number')
         self._params = dict(locals())
         del self._params['self']
 
     def _estimate(self, dataset):
-        reference = next(iter(next(iter(dataset))))
+        dataset_dup = dataset #duplicates object so that dataset type not converted
+        reference = next(iter(next(iter(dataset_dup))))
         sums = np.zeros_like(reference)
         counts = np.zeros_like(reference)
         offset = np.zeros(3, dtype=int)

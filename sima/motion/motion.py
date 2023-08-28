@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import division
+
+
 from builtins import next
 from builtins import zip
 from builtins import range
@@ -60,21 +60,23 @@ class MotionEstimationStrategy(with_metaclass(abc.ABCMeta, object)):
         displacements : list of ndarray of int
 
         """
+        
+        dataset_dup = dataset
+        shifts = self._estimate(dataset_dup)
 
-        shifts = self._estimate(dataset)
         assert np.any(np.all(x is not np.ma.masked for x in shift)
-                      for shift in it.chain.from_iterable(shifts))
+                      for shift in shifts)
         assert np.all(
             np.all(x is np.ma.masked for x in shift) or
             not np.any(x is np.ma.masked for x in shift)
-            for shift in it.chain.from_iterable(shifts))
+            for shift in shifts)
         shifts = self._make_nonnegative(shifts)
         assert np.any(np.all(x is not np.ma.masked for x in shift)
-                      for shift in it.chain.from_iterable(shifts))
+                      for shift in shifts)
         assert np.all(
             np.all(x is np.ma.masked for x in shift) or
             not np.any(x is np.ma.masked for x in shift)
-            for shift in it.chain.from_iterable(shifts))
+            for shift in shifts)
         return shifts
 
     def correct(self, dataset, savedir, channel_names=None, info=None,
@@ -120,6 +122,7 @@ class MotionEstimationStrategy(with_metaclass(abc.ABCMeta, object)):
                             for s in sequences]
         else:
             mc_sequences = sequences
+
         displacements = self.estimate(sima.ImagingDataset(mc_sequences, None))
         disp_dim = displacements[0].shape[-1]
         max_disp = np.ceil(
@@ -138,8 +141,8 @@ class MotionEstimationStrategy(with_metaclass(abc.ABCMeta, object)):
             frame_shape)
         corrected_sequences = [
             s[:, planes, rows, columns] for s in corrected_sequences]
-        return sima.ImagingDataset(
-            corrected_sequences, savedir, channel_names=channel_names)
+        return (sima.ImagingDataset(
+            corrected_sequences, savedir, channel_names=channel_names), rows, columns)
 
 
 class ResonantCorrection(MotionEstimationStrategy):

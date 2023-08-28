@@ -59,5 +59,5 @@ if __name__ == '__main__':
                             label='AUTO',
                             kwargs=normcut_kwargs
                             )
-            print('Normcut segmentation complete: {}'.format(dataset.savedir))
+            print(('Normcut segmentation complete: {}'.format(dataset.savedir)))
  

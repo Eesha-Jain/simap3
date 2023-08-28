@@ -1,5 +1,5 @@
 """Methods used to extract signals from an ImagingDataset."""
-from __future__ import division
+
 from builtins import zip
 from builtins import map
 from builtins import str
@@ -218,7 +218,7 @@ def _save_extract_summary(signals, save_directory, rois):
 
         figtitle = 'Extraction summary: {}\n{}\nPlane {}'.format(
             signals['timestamp'], save_directory, str(plane_idx))
-        if 'text.usetex' in mpl.rcParams.keys() and \
+        if 'text.usetex' in list(mpl.rcParams.keys()) and \
            mpl.rcParams['text.usetex']:
             figtitle = figtitle.replace('\\', '\\\\').replace('_', '\_')
 
@@ -384,7 +384,7 @@ def extract_rois(dataset, rois, signal_channel=0, remove_overlap=True,
         demix_matrix = _demixing_matrix(dataset)
         demixer = demix_matrix[signal_channel, demix_channel] * \
             dataset.time_averages[demix_channel]
-        demixer = demixer.flatten().astype('float32')[masked_pixels]
+        demixer = demixer.flatten().astype(float)[masked_pixels]
 
     raw_signal = [None] * num_sequences
 
@@ -392,16 +392,19 @@ def extract_rois(dataset, rois, signal_channel=0, remove_overlap=True,
         """Takes an aligned_data generator for a single cycle
         and returns df/f of each pixel formatted correctly for extraction"""
         while True:
-            df_frame = (
-                next(cycle)[..., channel] - time_averages[..., channel]
-            ) / time_averages[..., channel]
-            yield df_frame.flatten()
+            try:
+                df_frame = (
+                    next(cycle)[..., channel] - time_averages[..., channel]
+                ) / time_averages[..., channel]
+                yield df_frame.flatten()
+            except StopIteration:
+                break
 
     for cycle_idx, sequence in zip(it.count(), dataset):
 
-        signal = np.empty((n_rois, len(sequence)), dtype='float32')
+        signal = np.empty((n_rois, len(sequence)), dtype=float)
         if demixer is not None:
-            demix = np.empty((n_rois, len(sequence)), dtype='float32')
+            demix = np.empty((n_rois, len(sequence)), dtype=float)
 
         constants = {}
         constants['demixer'] = demixer
@@ -417,15 +420,16 @@ def extract_rois(dataset, rois, signal_channel=0, remove_overlap=True,
         # The actual extraction is in _roi_extract, it's a separate
         # top-level function due to Pool constraints.
         if n_processes > 1:
-            map_generator = pool.imap_unordered(_roi_extract, zip(
+            map_generator = pool.imap_unordered(_roi_extract, list(zip(
                 _data_chunker(
                     iter(sequence), dataset.time_averages, signal_channel),
-                it.count(), it.repeat(constants)), chunksize=chunksize)
+                it.count(), it.repeat(constants))), chunksize=chunksize)
         else:
-            map_generator = map(_roi_extract, zip(
+            map_generator = list(map(_roi_extract, list(zip(
                 _data_chunker(
                     iter(sequence), dataset.time_averages, signal_channel),
-                it.count(), it.repeat(constants)))
+                it.count(), it.repeat(constants)))))
+            
 
         # Loop over generator and extract signals
         while True:

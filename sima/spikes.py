@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License along with
 this program. If not, see http://www.gnu.org/licenses/.
 """
 
-from __future__ import division
-from __future__ import print_function
+
+
 from builtins import str
 from builtins import range
 
@@ -201,11 +201,11 @@ def spike_inference(fluor, sigma=None, gamma=None, mode="correct",
     if mode == "psd":
         T = len(fluor)
         # construct deconvolution matrix  (sp = gen*c)
-        gen = spmatrix(1., range(T), range(T), (T, T))
+        gen = spmatrix(1., list(range(T)), list(range(T)), (T, T))
 
         for i in range(ar_order):
             gen = gen + spmatrix(
-                float(-gamma[i]), range(i + 1, T), range(T - i - 1), (T, T))
+                float(-gamma[i]), list(range(i + 1, T)), list(range(T - i - 1)), (T, T))
 
         gr = np.roots(np.concatenate([np.array([1]), -gamma.flatten()]))
         # decay vector for initial fluorescence
@@ -283,16 +283,16 @@ def spike_inference(fluor, sigma=None, gamma=None, mode="correct",
              "Adjusting noise level and re-solving")
         # setup quadratic problem with cvxopt
         solvers.options['show_progress'] = verbose
-        ind_rows = range(T)
-        ind_cols = range(T)
+        ind_rows = list(range(T))
+        ind_cols = list(range(T))
         vals = np.ones(T)
 
         cnt = 2  # no of constraints (init_calcium and baseline)
-        ind_rows += range(T)
+        ind_rows += list(range(T))
         ind_cols += [T] * T
         vals = np.concatenate((vals, np.ones(T)))
 
-        ind_rows += range(T)
+        ind_rows += list(range(T))
         ind_cols += [T + cnt - 1] * T
         vals = np.concatenate((vals, np.squeeze(gd_vec)))
 
@@ -300,7 +300,7 @@ def spike_inference(fluor, sigma=None, gamma=None, mode="correct",
         H = P.T * P
         Py = P.T * matrix(fluor.astype(float))
         sol = solvers.qp(
-            H, -Py, spdiag([-gen, -spmatrix(1., range(cnt), range(cnt))]),
+            H, -Py, spdiag([-gen, -spmatrix(1., list(range(cnt)), list(range(cnt)))]),
             matrix(0., (T + cnt, 1)))
         xx = sol['x']
         fit = np.array(xx[:T])

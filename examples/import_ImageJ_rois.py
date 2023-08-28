@@ -24,7 +24,7 @@ def remove_empty_ROIs(rois, im_shape):
             rois.remove(roi)
             num_removed += 1
     if num_removed:
-        print('Removed {} empty ROIs'.format(num_removed))
+        print(('Removed {} empty ROIs'.format(num_removed)))
 
 if __name__ == '__main__':
     argParser = argparse.ArgumentParser()
@@ -41,28 +41,27 @@ if __name__ == '__main__':
 
     for directory, folders, files in os.walk(args.directory):
         if directory.endswith('.sima'):
-            zip_files = filter(
-                lambda x: x.endswith('zip') and not x.startswith('._'), files)
+            zip_files = [x for x in files if x.endswith('zip') and not x.startswith('._')]
             if len(zip_files) == 0:
                 continue
             elif len(zip_files) > 1:
-                print "Multiple ZIP files found, skipping directory: {}".format(
-                    directory)
+                print("Multiple ZIP files found, skipping directory: {}".format(
+                    directory))
                 continue
             try:
                 dataset = sima.ImagingDataset.load(directory)
             except IOError:
-                print "Unable to load ImagingDataset: {}".format(directory)
+                print("Unable to load ImagingDataset: {}".format(directory))
                 continue
-            print('Loaded {}'.format(dataset.savedir))
+            print(('Loaded {}'.format(dataset.savedir)))
             zip_path = os.path.join(directory, zip_files[0])
             rois = sima.ROI.ROIList.load(zip_path, fmt='ImageJ')
-            print('Loaded {} ROIs from {}'.format(len(rois), zip_path))
+            print(('Loaded {} ROIs from {}'.format(len(rois), zip_path)))
             remove_empty_ROIs(
                 rois, im_shape=dataset.frame_shape[:-1])
             sima.misc.copy_label_to_id(rois)
 
             if not args.no_action:
                 dataset.add_ROIs(rois, label=args.label)
-            print("Added {} ROIs with label '{}' to {}".format(
-                len(rois), args.label, dataset.savedir))
+            print(("Added {} ROIs with label '{}' to {}".format(
+                len(rois), args.label, dataset.savedir)))

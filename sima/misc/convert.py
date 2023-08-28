@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+
 from builtins import input
 from builtins import zip
 from builtins import str
@@ -171,8 +171,8 @@ def _0_to_1(source, target=None):
     >>> ds = ImagingDataset.load('v1_dataset.sima')
     """
     if target is None:
-        overwrite = strtobool(input("Source dataset path = target path. " +
-                                    "Overwrite existing?"))
+        overwrite = strtobool(eval(input("Source dataset path = target path. " +
+                                    "Overwrite existing?")))
         if not overwrite:
             return
         target = source

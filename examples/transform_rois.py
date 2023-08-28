@@ -51,8 +51,8 @@ if __name__ == '__main__':
     args = argParser.parse_args()
 
     source_dataset = ImagingDataset.load(args.source)
-    print "Beginning ROI transforms, source dataset: ", args.source
-    print "-----------------------------------------"
+    print("Beginning ROI transforms, source dataset: ", args.source)
+    print("-----------------------------------------")
 
     for directory, folders, files in os.walk(args.target):
         if directory.endswith('.sima'):
@@ -65,7 +65,7 @@ if __name__ == '__main__':
                 continue
 
             if args.target_label in target_dataset.ROIs and not args.overwrite:
-                print "Label already exists, skipping: ", directory
+                print("Label already exists, skipping: ", directory)
                 continue
 
             try:
@@ -82,6 +82,6 @@ if __name__ == '__main__':
                     target_label=args.target_label,
                     copy_properties=args.copy_properties)
             except TransformError:
-                print "FAIL, transform error: ", directory
+                print("FAIL, transform error: ", directory)
             else:
-                print "SUCCESS, ROIs transformed:", directory
+                print("SUCCESS, ROIs transformed:", directory)

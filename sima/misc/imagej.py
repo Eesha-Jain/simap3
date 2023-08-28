@@ -1,5 +1,5 @@
-from __future__ import division
-from __future__ import unicode_literals
+
+
 from builtins import str
 from builtins import range
 # Copyright: Luis Pedro Coelho <luis@luispedro.org>, 2012
@@ -106,13 +106,13 @@ def read_roi(roi_obj):
     def _getfloat():
         """Read a float from the roi file object"""
         v = np.int32(_get32())
-        return v.view(np.float32)
+        return v.view(float)
 
     def _getcoords(z=0):
         """Get the next coordinate of an roi polygon"""
         if options & sub_pixel_resolution:
             getc = _getfloat
-            points = np.empty((n_coordinates, 3), dtype=np.float32)
+            points = np.empty((n_coordinates, 3), dtype=float)
         else:
             getc = _get16
             points = np.empty((n_coordinates, 3), dtype=np.int16)

@@ -1,4 +1,4 @@
-from __future__ import division
+
 from builtins import zip
 from builtins import range
 from past.utils import old_div
@@ -281,6 +281,8 @@ class MergeOverlapping(PostProcessingStep):
             A list of sima.ROI ROI objects with the overlapping ROIs combined
         """
 
+        multi_polygon_object = rois
+
         for roi in rois:
             roi.mask = roi.mask
 
@@ -471,7 +473,7 @@ class SparseROIsFromMasks(PostProcessingStep):
             smooth_results = pool.map(FilterFunc, rois)
             pool.close()
         else:
-            smooth_results = map(FilterFunc, rois)
+            smooth_results = list(map(FilterFunc, rois))
 
         accepted = [res[0] for res in smooth_results if res[0] is not None]
         accepted_components = [res[1] for res in smooth_results
@@ -563,6 +565,6 @@ class SmoothROIBoundaries(PostProcessingStep):
             smooth_rois = pool.map(SmoothFunc, rois)
             pool.close()
         else:
-            smooth_rois = map(SmoothFunc, rois)
+            smooth_rois = list(map(SmoothFunc, rois))
 
         return ROIList(smooth_rois)

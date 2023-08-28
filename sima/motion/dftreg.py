@@ -31,7 +31,7 @@ OF SUCH DAMAGE.
 @author: llerussell
 """
 
-from __future__ import absolute_import, division
+
 from builtins import map, range
 from functools import partial
 import multiprocessing
@@ -129,7 +129,7 @@ class DiscreteFourier2D(motion.MotionEstimationStrategy):
         n_processes = params['n_processes']
 
         if verbose:
-            print('Using ' + str(n_processes) + ' worker(s)')
+            print(('Using ' + str(n_processes) + ' worker(s)'))
 
         displacements = []
 
@@ -144,15 +144,15 @@ class DiscreteFourier2D(motion.MotionEstimationStrategy):
                 # load into memory... need to pass numpy array to dftreg.
                 # could(should?) rework it to instead accept tiff array
                 if verbose:
-                    print('Loading plane ' + str(plane_idx + 1) + ' of ' +
-                          str(num_planes) + ' into numpy array')
+                    print(('Loading plane ' + str(plane_idx + 1) + ' of ' +
+                          str(num_planes) + ' into numpy array'))
                 t0 = time.time()
                 # reshape, one plane at a time
                 frames = np.array(sequence[:, plane_idx, :, :, 0])
                 frames = np.squeeze(frames)
                 e1 = time.time() - t0
                 if verbose:
-                    print('    Loaded in: ' + str(e1) + ' s')
+                    print(('    Loaded in: ' + str(e1) + ' s'))
 
                 # do the registering
                 # registered_frames return is useless, sima later uses the
@@ -197,8 +197,8 @@ class DiscreteFourier2D(motion.MotionEstimationStrategy):
 
             total_time = time.time() - t0
             if verbose:
-                print('    Total time for plane ' + str(plane_idx + 1) + ': ' +
-                      str(total_time) + ' s')
+                print(('    Total time for plane ' + str(plane_idx + 1) + ': ' +
+                      str(total_time) + ' s'))
 
         return displacements
 
@@ -274,7 +274,7 @@ def _register(frames, upsample_factor=1, max_displacement=None,
                               verbose=verbose)
     e1 = time.time() - t0
     if verbose:
-        print('        Time taken: ' + str(e1) + ' s')
+        print(('        Time taken: ' + str(e1) + ' s'))
 
     # register all frames
     output = _register_all_frames(frames, mean_img,
@@ -292,7 +292,7 @@ def _register(frames, upsample_factor=1, max_displacement=None,
 
     e2 = time.time() - t0 - e1
     if verbose:
-        print('        Time taken: ' + str(e2) + ' s')
+        print(('        Time taken: ' + str(e2) + ' s'))
 
     # save?
     if return_registered:
@@ -301,11 +301,11 @@ def _register(frames, upsample_factor=1, max_displacement=None,
                                     verbose=verbose)
             e3 = time.time() - t0 - e1 - e2
             if verbose:
-                print('        Time taken: ' + str(e3) + ' s')
+                print(('        Time taken: ' + str(e3) + ' s'))
 
     total_time = time.time() - t0
     if verbose:
-        print('    Completed in: ' + str(total_time) + ' s')
+        print(('    Completed in: ' + str(total_time) + ' s'))
 
     if return_registered:
         return dy, dx, registered_frames
@@ -357,8 +357,8 @@ def _make_mean_img(frames, num_images_for_mean=100, randomise_frames=True,
 
     if randomise_frames:
         if verbose:
-            print('    Making aligned mean image from ' +
-                  str(num_images_for_mean) + ' random frames...')
+            print(('    Making aligned mean image from ' +
+                  str(num_images_for_mean) + ' random frames...'))
 
         for idx, frame_num in enumerate(np.random.choice(input_shape[0],
                                         size=num_images_for_mean,
@@ -367,8 +367,8 @@ def _make_mean_img(frames, num_images_for_mean=100, randomise_frames=True,
 
     else:
         if verbose:
-            print('    Making aligned mean image from first ' +
-                  str(num_images_for_mean) + ' frames...')
+            print(('    Making aligned mean image from first ' +
+                  str(num_images_for_mean) + ' frames...'))
         frames_for_mean = frames[0:num_images_for_mean]
 
     mean_img = np.mean(frames_for_mean, 0)
@@ -387,7 +387,7 @@ def _make_mean_img(frames, num_images_for_mean=100, randomise_frames=True,
             results = pool.map(map_function, frames_for_mean)
             pool.close()
         else:
-            results = map(map_function, frames_for_mean)
+            results = list(map(map_function, frames_for_mean))
 
         # preallocate the results array
         mean_img_dx = np.zeros(num_images_for_mean, dtype=np.float)
@@ -405,8 +405,8 @@ def _make_mean_img(frames, num_images_for_mean=100, randomise_frames=True,
             np.absolute(mean_img_dx)) + np.mean(np.absolute(mean_img_dy))
 
         if verbose:
-            print('        Iteration ' + str(iteration) +
-                  ', average error: ' + str(mean_img_err) + ' pixels')
+            print(('        Iteration ' + str(iteration) +
+                  ', average error: ' + str(mean_img_err) + ' pixels'))
         iteration += 1
 
     return mean_img
@@ -434,7 +434,7 @@ def _register_all_frames(frames, mean_img, upsample_factor=1,
     input_dtype = np.array(frames[0]).dtype
 
     if verbose:
-        print('    Registering all ' + str(frames.shape[0]) + ' frames...')
+        print(('    Registering all ' + str(frames.shape[0]) + ' frames...'))
 
     map_function = partial(_register_frame, mean_img=mean_img,
                            upsample_factor=upsample_factor,
@@ -447,7 +447,7 @@ def _register_all_frames(frames, mean_img, upsample_factor=1,
         results = pool.map(map_function, frames)
         pool.close()
     else:
-        results = map(map_function, frames)
+        results = list(map(map_function, frames))
 
     # preallocate arrays
     dx = np.zeros(input_shape[0], dtype=np.float)

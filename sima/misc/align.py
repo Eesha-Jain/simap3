@@ -1,4 +1,4 @@
-from __future__ import division
+
 from builtins import range
 from past.utils import old_div
 # The following code was copied/adapted from CellProfiler.
@@ -67,8 +67,8 @@ def cross_correlation_3d(pixels1, pixels2):
     # leaving f(x,y)*(t(x-u,y-v)-t_mean) which is a convolution of f
     # by t-t_mean.
     #
-    fp1 = rfftn(pixels1.astype('float32'), fshape, axes=(0, 1, 2))
-    fp2 = rfftn(pixels2.astype('float32'), fshape, axes=(0, 1, 2))
+    fp1 = rfftn(pixels1.astype(float), fshape, axes=(0, 1, 2))
+    fp2 = rfftn(pixels2.astype(float), fshape, axes=(0, 1, 2))
     corr12 = irfftn(fp1 * fp2.conj(), axes=(0, 1, 2)).real
     #
     # Use the trick of Lewis here - compute the cumulative sums
@@ -191,8 +191,8 @@ def cross_correlation_2d(pixels1, pixels2):
     # leaving f(x,y)*(t(x-u,y-v)-t_mean) which is a convolution of f
     # by t-t_mean.
     #
-    fp1 = fft2(pixels1.astype('float32'), fshape)
-    fp2 = fft2(pixels2.astype('float32'), fshape)
+    fp1 = fft2(pixels1.astype(float), fshape)
+    fp2 = fft2(pixels2.astype(float), fshape)
     corr12 = ifft2(fp1 * fp2.conj()).real
 
     #

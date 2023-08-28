@@ -1,6 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 from builtins import zip
 from builtins import range
 from builtins import object
@@ -340,7 +337,8 @@ def _backtrace(start_idx, backpointer, states, position_tbl):
         trajectory[t] = position_tbl[states[t][i]]
     return trajectory
 
-
+# Markov is a system where the future state depends only on the current + past states.
+# This is being used to estimate the frame shift based on previous frame shifts
 class _HiddenMarkov(MotionEstimationStrategy):
 
     def __init__(self, granularity=2, num_states_retained=50,
@@ -425,7 +423,11 @@ class _HiddenMarkov(MotionEstimationStrategy):
         params = self._params
         if params['verbose']:
             print('Estimating model parameters.')
-        shifts = self._estimate_shifts(dataset)
+
+        dataset_dup = dataset #duplicates object so that dataset type not converted
+
+        shifts = self._estimate_shifts(dataset_dup)
+
         references, variances = _whole_frame_shifting(dataset, shifts)
         if params['max_displacement'] is None:
             max_displacement = np.array(dataset.frame_shape[:3]) // 2
@@ -757,7 +759,7 @@ class PositionIterator(object):
             """Calculate a single iteration output"""
             return np.array(list(it.chain.from_iterable(
                 (base + s for s in it.product(
-                    *[range(o, o + x) for x, o in
+                    *[list(range(o, o + x)) for x, o in
                       zip(shape[(granularity[0] + 1):],
                           offset[(granularity[0] + 1):])]))
                 for base in group)))

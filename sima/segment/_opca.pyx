@@ -11,8 +11,8 @@ cimport numpy as np
 
 # from sima.misc import pairwise
 
-INT_TYPE = np.int
-FLOAT_TYPE = np.float
+INT_TYPE = np.int64
+FLOAT_TYPE = np.float64
 ctypedef np.int_t INT_TYPE_t
 ctypedef np.float_t FLOAT_TYPE_t
 

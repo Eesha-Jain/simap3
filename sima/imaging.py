@@ -1,14 +1,14 @@
 """Base classes for multiframe imaging data."""
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
 from future.utils import iteritems, itervalues
 from builtins import str
 from builtins import zip
 from builtins import range
 from builtins import object
 from past.utils import old_div
-from past.builtins import basestring
+from past.builtins import str
 import collections
 import warnings
 import itertools as it
@@ -228,7 +228,7 @@ class ImagingDataset(object):
 
     @channel_names.setter
     def channel_names(self, names):
-        self._channel_names = [str(n) for n in names]
+        self._channel_names = [n for n in names]
         if self.savedir is not None and not self._read_only:
             self.save()
 
@@ -374,7 +374,7 @@ class ImagingDataset(object):
         try:
             with open(join(self.savedir, 'rois.pkl'), 'rb') as f:
                 return {label: ROIList(**v)
-                        for label, v in pickle.load(f).items()}
+                        for label, v in list(pickle.load(f).items())}
         except (IOError, pickle.UnpicklingError):
             return {}
 
@@ -577,7 +577,7 @@ class ImagingDataset(object):
                 for idx in range(len(transforms) - 1):
                     if transforms[idx + 1] is None:
                         transforms[idx + 1] = transforms[idx]
-                for idx in reversed(range(len(transforms) - 1)):
+                for idx in reversed(list(range(len(transforms) - 1))):
                     if transforms[idx] is None:
                         transforms[idx] = transforms[idx + 1]
 
@@ -645,7 +645,7 @@ class ImagingDataset(object):
         """
 
         if fmt == 'HDF5':
-            if not isinstance(filenames, basestring):
+            if not isinstance(filenames, str):
                 raise ValueError(
                     'A single filename must be passed for HDF5 format.')
         elif not len(filenames) == self.frame_shape[-1]:
@@ -1020,7 +1020,7 @@ class ImagingDataset(object):
 
             # estimate sigma values
             sigma = [sima.spikes.estimate_parameters(sigs, g)[1]
-                     for g, sigs in zip(gamma, zip(*signals['raw']))]
+                     for g, sigs in zip(gamma, list(zip(*signals['raw'])))]
 
         # perform spike inference
         spikes, fits, parameters = [], [], []

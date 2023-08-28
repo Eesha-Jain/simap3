@@ -1,4 +1,4 @@
-from __future__ import division
+
 from builtins import next
 from builtins import range
 from past.utils import old_div
@@ -63,19 +63,19 @@ def mkdir_p(path):
 def most_recent_key(d):
     """Return the key to the most recently timestamped entry"""
     try:
-        return max(iter(d.keys()), key=lambda x: d[x]['timestamp'])
+        return max(iter(list(d.keys())), key=lambda x: d[x]['timestamp'])
     except (TypeError, KeyError):
-        return max(iter(d.keys()), key=lambda x: d[x].timestamp)
+        return max(iter(list(d.keys())), key=lambda x: d[x].timestamp)
 
 
 def auto_choose(d):
     """Automatically choose the most recent value in a timestamped
     dictionary."""
     try:
-        return max(iter(d.values()), key=lambda x: x['timestamp'])
+        return max(iter(list(d.values())), key=lambda x: x['timestamp'])
     except:  # noqa: E722
         # TODO: what should this actually except?
-        return max(iter(d.values()), key=lambda x: x.timestamp)
+        return max(iter(list(d.values())), key=lambda x: x.timestamp)
 
 
 def copy_label_to_id(rois):
@@ -106,7 +106,7 @@ def resolve_channels(chan, channel_names, num_channels=None):
 def pairwise(iterable):
     a, b = it.tee(iterable)
     next(b, None)
-    return zip(a, b)
+    return list(zip(a, b))
 
 
 # was affine_transform
@@ -233,7 +233,7 @@ def loadmat(filename):
             elif isinstance(data[key], spio.matlab.mio5_params.mat_struct):
                 data[key] = todict(data[key])
             elif isinstance(data[key], collections.Iterable) and \
-                    not isinstance(data[key], basestring) and \
+                    not isinstance(data[key], str) and \
                     len(data[key]) and \
                     isinstance(data[key][0],
                                spio.matlab.mio5_params.mat_struct):

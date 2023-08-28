@@ -202,14 +202,14 @@ class TestMaskedSequence(object):
 
     def test_explicit_mask_all(self):
         mask_all = np.ones((128, 256), dtype=bool)
-        masked = self.tiff_seq.mask([(range(5), range(2), mask_all, range(2))])
+        masked = self.tiff_seq.mask([(list(range(5)), list(range(2)), mask_all, list(range(2)))])
 
         assert_equal(masked.shape, (5, 2, 128, 256, 2))
         assert_(np.all(np.isnan(masked)))
 
     def test_explicit_3d_mask_all(self):
         mask_all = np.ones((2, 128, 256), dtype=bool)
-        masked = self.tiff_seq.mask([(range(5), mask_all, range(2))])
+        masked = self.tiff_seq.mask([(list(range(5)), mask_all, list(range(2)))])
 
         assert_equal(masked.shape, (5, 2, 128, 256, 2))
         assert_(np.all(np.isnan(masked)))

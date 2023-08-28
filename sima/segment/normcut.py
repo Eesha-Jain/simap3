@@ -7,7 +7,7 @@ Reference
     IEEE TRANSACTIONS ON PATTERN ANALYSIS AND MACHINE INTELLIGENCE,
     VOL. 22, NO. 8, AUGUST 2000.
 """
-from __future__ import division
+
 from builtins import str
 from builtins import range
 from builtins import object
@@ -375,7 +375,7 @@ class BasicAffinityMatrix(AffinityMatrixMethod):
         shape = dataset.frame_shape[1:3]
         max_dist = self._params['max_dist']
         pairs = []
-        for y, x in it.product(range(shape[0]), range(shape[1])):
+        for y, x in it.product(list(range(shape[0])), list(range(shape[1]))):
             for dx in range(max_dist[1] + 1):
                 if dx == 0:
                     yrange = list(range(1, max_dist[0] + 1))
@@ -407,7 +407,7 @@ class BasicAffinityMatrix(AffinityMatrixMethod):
         max_dist = self._params['max_dist']
         shape = dataset.frame_shape[1:3]
         A = sparse.dok_matrix((shape[0] * shape[1], shape[0] * shape[1]))
-        for y, x in it.product(range(shape[0]), range(shape[1])):
+        for y, x in it.product(list(range(shape[0])), list(range(shape[1]))):
             for dx in range(max_dist[1] + 1):
                 if dx == 0:
                     yrange = list(range(1, max_dist[0] + 1))

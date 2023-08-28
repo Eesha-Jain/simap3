@@ -534,7 +534,7 @@ class Sequence(with_metaclass(ABCMeta, object)):
                 raise ImportError('h5py >= 2.2.1 required')
             f = h5py.File(filenames, 'w')
             f.create_dataset(
-                name='imaging', shape=self.shape, dtype='float32',
+                name='imaging', shape=self.shape, dtype=float,
                 chunks=(1, 1, self.shape[2], self.shape[3], 1),
                 compression=compression)
             # TODO: change dtype?
@@ -865,7 +865,7 @@ class _Sequence_memmap(Sequence):
 
     """
 
-    def __init__(self, path, shape, dim_order, dtype='float32', order='C'):
+    def __init__(self, path, shape, dim_order, dtype=float, order='C'):
         self._path = abspath(path)
         self._shape = shape
         self._dtype = dtype
@@ -1172,7 +1172,7 @@ class _MaskedSequence(_WrapperSequence):
             if len(outer) == 2:  # (zyx, channels)
                 mask, channels = outer
                 if channels is None:
-                    channels = range(frame.shape[-1])
+                    channels = list(range(frame.shape[-1]))
                 else:
                     try:
                         int(channels)
@@ -1188,7 +1188,7 @@ class _MaskedSequence(_WrapperSequence):
             elif len(outer) == 3:  # (planes, yx, channels)
                 planes, mask, channels = outer
                 if planes is None:
-                    planes = range(frame.shape[0])
+                    planes = list(range(frame.shape[0]))
                 else:
                     try:
                         int(planes)
@@ -1197,7 +1197,7 @@ class _MaskedSequence(_WrapperSequence):
                     else:
                         planes = [planes]
                 if channels is None:
-                    channels = range(frame.shape[-1])
+                    channels = list(range(frame.shape[-1]))
                 else:
                     try:
                         int(channels)
@@ -1465,7 +1465,7 @@ def _resolve_paths(d, savedir):
                     ''.join('  ' + p + '\n' for p in paths)
         if len(valid_paths) is not 1:
             while True:
-                input_path = input(error_msg)
+                input_path = eval(input(error_msg))
                 if isfile(input_path):
                     valid_paths = [input_path]
                     break
