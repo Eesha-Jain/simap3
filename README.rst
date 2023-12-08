@@ -18,7 +18,9 @@
 Overview
 --------
 
-SIMA (Sequential IMage Analysis) is an Open Source package for 
+This is the python 3 adaptation of the SIMA (Sequential IMage Analysis) calcium imaging preprocessing pipeline developed by the Losonczy lab. See below for the original description of SIMA. We have also updated the package to enable parallel processing.
+
+SIMA is an Open Source package for 
 analysis of time-series imaging data arising from fluorescence
 microscopy.  The functionality of this package includes:
 
@@ -42,7 +44,7 @@ For complete documentation go to <http://www.losonczylab.org/sima>
 Dependencies
 -------------
 
-* `Python <http://python.org>`_ 2.7 
+* `Python <http://python.org>`_ 3.6 
 * `numpy <http://www.scipy.org>`_ >= 1.6.2
 * `scipy <http://www.scipy.org>`_ >= 0.13.0
 * `scikit-image <http://scikit-image.org>`_ >= 0.9.3 (0.11.0 recommended)
