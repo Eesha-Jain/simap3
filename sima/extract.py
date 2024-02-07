@@ -425,10 +425,10 @@ def extract_rois(dataset, rois, signal_channel=0, remove_overlap=True,
                     iter(sequence), dataset.time_averages, signal_channel),
                 it.count(), it.repeat(constants))), chunksize=chunksize)
         else:
-            map_generator = list(map(_roi_extract, list(zip(
+            map_generator = map(_roi_extract, list(zip(
                 _data_chunker(
                     iter(sequence), dataset.time_averages, signal_channel),
-                it.count(), it.repeat(constants)))))
+                it.count(), it.repeat(constants))))
             
 
         # Loop over generator and extract signals
