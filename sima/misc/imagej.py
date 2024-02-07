@@ -106,7 +106,7 @@ def read_roi(roi_obj):
     def _getfloat():
         """Read a float from the roi file object"""
         v = np.int32(_get32())
-        return v.view(float)
+        return v.view(np.float32)
 
     def _getcoords(z=0):
         """Get the next coordinate of an roi polygon"""
